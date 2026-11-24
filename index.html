@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>PokerON!</title>
+  <meta name="description" content="PokerON!: Texas Hold'em no navegador, com robôs em 5 níveis, passar o aparelho entre amigos e uma mesa para jogar com cartas reais. Grátis e funciona offline." />
+  <meta name="theme-color" content="#007ACC" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/favicon.ico" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <script>/* aplica tema e animações antes de pintar (evita "piscar") */
+  try{var c={};try{c=JSON.parse(localStorage.getItem('pokeron.cfg')||'{}')||{}}catch(e){}var d=document.documentElement,r=c.reduzir,t=c.tema;
+  if(t!=='escuro'&&t!=='claro')t=c.escuro===true?'escuro':null;
+  if(r===undefined||r===null)r=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(t?t==='escuro':matchMedia('(prefers-color-scheme: dark)').matches)d.setAttribute('data-tema','escuro');if(r)d.setAttribute('data-reduzir','1');}catch(e){}</script>
+  <link rel="stylesheet" href="on.css" />
+  <link rel="stylesheet" href="cartas.css" />
+  <link rel="stylesheet" href="colorido.css" />
+  <script defer src="on.js"></script>
+  <script defer src="cartas.js"></script>
+  <script defer src="sorteio.js"></script>
+  <script defer src="regras.js"></script>
+  <script defer src="robo.js"></script>
+  <script defer src="textos.js"></script>
+  <script defer src="javinhas.js"></script>
+</head>
+<body>
+  <header>
+    <button id="menu-btn" type="button" aria-label="Abrir menu" aria-controls="drawer" data-abrir="drawer">☰</button>
+    <h1>PokerON!</h1>
+    <button id="howto-btn" class="header-btn" type="button" aria-haspopup="dialog" data-abrir="howto-modal">Como Jogar</button>
+  </header>
+
+  <div id="overlay" hidden></div>
+
+  <!-- Modal "Como Jogar": usar o site, o jogo e estratégia -->
+  <div id="howto-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="howto-title">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h2 id="howto-title">Como Jogar PokerON!</h2>
+        <button class="modal-x" type="button" aria-label="Fechar" data-fechar>✕</button>
+      </div>
+      <div class="abas" role="tablist" aria-label="Seções da ajuda">
+        <button class="aba" id="aba-site" type="button" role="tab" aria-selected="true" aria-controls="painel-site">O site</button>
+        <button class="aba" id="aba-jogo" type="button" role="tab" aria-selected="false" aria-controls="painel-jogo" tabindex="-1">O jogo</button>
+        <button class="aba" id="aba-estr" type="button" role="tab" aria-selected="false" aria-controls="painel-estr" tabindex="-1">Estratégia</button>
+      </div>
+      <div class="modal-body texto-ajuda" id="painel-site" role="tabpanel" aria-labelledby="aba-site"></div>
+      <div class="modal-body texto-ajuda" id="painel-jogo" role="tabpanel" aria-labelledby="aba-jogo" hidden></div>
+      <div class="modal-body texto-ajuda" id="painel-estr" role="tabpanel" aria-labelledby="aba-estr" hidden></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="button" data-fechar data-foco>Entendi!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal "Tabela de mãos" (aberta a qualquer hora, nos dois modos) -->
+  <div id="tabela-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tabela-title">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h2 id="tabela-title">Tabela de mãos</h2>
+        <button class="modal-x" type="button" aria-label="Fechar" data-fechar>✕</button>
+      </div>
+      <div class="modal-body" id="tabela-corpo"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="button" data-fechar data-foco>Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal "Nova partida" -->
+  <div id="partida-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="partida-title">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h2 id="partida-title">Nova partida</h2>
+        <button class="modal-x" type="button" aria-label="Fechar" data-fechar>✕</button>
+      </div>
+      <div class="modal-body" id="partida-corpo">
+        <h3 class="sec-tit" id="sec-modo">Onde as cartas estão</h3>
+        <div class="tiles" id="tiles-modo" role="group" aria-labelledby="sec-modo"></div>
+
+        <div class="bloco-modo" id="bloco-dig">
+          <h3 class="sec-tit" id="sec-n">Jogadores na mesa</h3>
+          <div class="seg seg-wrap" id="op-n" role="group" aria-labelledby="sec-n"></div>
+          <h3 class="sec-tit" id="sec-h">Quantos são pessoas</h3>
+          <div class="seg seg-wrap" id="op-h" role="group" aria-labelledby="sec-h"></div>
+          <p class="nivel-nome" id="h-desc"></p>
+          <div class="nomes-lista" id="nomes-dig" style="margin-top:8px"></div>
+          <div id="bloco-nivel">
+            <h3 class="sec-tit" id="sec-niv">Nível dos robôs</h3>
+            <div class="seg seg-niveis" id="op-niveis" role="group" aria-labelledby="sec-niv"></div>
+            <p class="nivel-nome" id="niveis-desc"></p>
+          </div>
+          <h3 class="sec-tit" id="sec-fichas">Fichas de cada um</h3>
+          <div class="seg seg-wrap" id="op-fichas" role="group" aria-labelledby="sec-fichas"></div>
+          <h3 class="sec-tit" id="sec-mpn">Blinds sobem</h3>
+          <div class="seg seg-wrap" id="op-mpn" role="group" aria-labelledby="sec-mpn"></div>
+          <p class="nivel-nome" id="mpn-desc"></p>
+        </div>
+
+        <div class="bloco-modo" id="bloco-fis" hidden>
+          <h3 class="sec-tit" id="sec-fn">Jogadores na mesa</h3>
+          <div class="fis-n">
+            <button class="mini-btn" type="button" id="fn-menos" aria-label="Menos um jogador">-</button>
+            <output id="fn-valor" aria-live="polite">4</output>
+            <button class="mini-btn" type="button" id="fn-mais" aria-label="Mais um jogador">+</button>
+          </div>
+          <div class="nomes-lista" id="nomes-fis" style="margin-top:8px"></div>
+          <h3 class="sec-tit">Fichas e blinds</h3>
+          <div class="campos">
+            <div class="campo"><label for="f-fichas">Fichas de cada</label><input id="f-fichas" type="number" inputmode="numeric" min="2" max="1000000" step="1" /></div>
+            <div class="campo"><label for="f-sb">Blind pequeno</label><input id="f-sb" type="number" inputmode="numeric" min="1" max="1000000" step="1" /></div>
+            <div class="campo"><label for="f-bb">Blind grande</label><input id="f-bb" type="number" inputmode="numeric" min="1" max="1000000" step="1" /></div>
+            <div class="campo"><label for="f-ante">Ante (opcional)</label><input id="f-ante" type="number" inputmode="numeric" min="0" max="1000000" step="1" /></div>
+          </div>
+          <h3 class="sec-tit" id="sec-fmpn">Blinds sobem</h3>
+          <div class="seg seg-wrap" id="op-fmpn" role="group" aria-labelledby="sec-fmpn"></div>
+          <p class="aviso-modal" id="fis-erro" role="alert" hidden></p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="button" id="partida-jogar" data-foco>Jogar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal "Quem ganhou?" (mesa com cartas reais) -->
+  <div id="venc-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="venc-title">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h2 id="venc-title">Quem ganhou?</h2>
+        <button class="modal-x" type="button" aria-label="Fechar" data-fechar>✕</button>
+      </div>
+      <div class="modal-body" id="venc-corpo"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="button" id="venc-ok" disabled>Pagar os potes</button>
+        <button class="btn btn-secondary" type="button" data-fechar>Depois</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal "Jogadores e fichas" (mesa com cartas reais) -->
+  <div id="jog-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="jog-title">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h2 id="jog-title">Jogadores e fichas</h2>
+        <button class="modal-x" type="button" aria-label="Fechar" data-fechar>✕</button>
+      </div>
+      <div class="modal-body" id="jog-corpo"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="button" data-fechar data-foco>Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal "Blinds" (mesa com cartas reais) -->
+  <div id="blinds-modal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="blinds-title">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h2 id="blinds-title">Blinds</h2>
+        <button class="modal-x" type="button" aria-label="Fechar" data-fechar>✕</button>
+      </div>
+      <div class="modal-body" id="blinds-corpo">
+        <p class="aviso-modal" id="blinds-atual"></p>
+        <div class="campos" style="margin-top:8px">
+          <div class="campo"><label for="b-sb">Blind pequeno</label><input id="b-sb" type="number" inputmode="numeric" min="1" step="1" /></div>
+          <div class="campo"><label for="b-bb">Blind grande</label><input id="b-bb" type="number" inputmode="numeric" min="1" step="1" /></div>
+          <div class="campo"><label for="b-ante">Ante</label><input id="b-ante" type="number" inputmode="numeric" min="0" step="1" /></div>
+        </div>
+        <p class="aviso-modal erro" id="blinds-erro" role="alert" hidden></p>
+        <p class="aviso-modal" id="blinds-quando" style="margin-top:8px"></p>
+        <button class="btn btn-secondary" type="button" id="blinds-prox" style="margin-top:8px;width:100%"></button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="button" id="blinds-ok" data-foco>Salvar</button>
+        <button class="btn btn-secondary" type="button" data-fechar>Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <section id="game-area" aria-label="Mesa de poker e controles">
+      <button id="modo-btn" type="button" aria-haspopup="dialog" data-abrir="partida-modal">
+        <span id="modo-mini" aria-hidden="true"></span>
+        <span class="modo-txt"><span class="nivel-rotulo">Partida</span><b id="modo-nome">Poker no aparelho</b><span id="modo-sub"></span></span>
+        <span class="modo-trocar"><span class="trocar-txt">Trocar</span><span class="ic" id="modo-chevron"></span></span>
+      </button>
+
+      <div id="hud">
+        <div class="hud-box"><span class="hud-label" id="hud-r1">Pote</span><b id="hud-v1">0</b></div>
+        <div class="hud-box"><span class="hud-label" id="hud-r2">Rodada</span><b id="hud-v2">Pré-flop</b></div>
+        <div class="hud-box"><span class="hud-label" id="hud-r3">Blinds</span><b id="hud-v3">10/20</b></div>
+      </div>
+
+      <div id="mesa-box">
+        <div id="mesa-dig" role="group" aria-label="Mesa de poker">
+          <div class="feltro" aria-hidden="true"></div>
+          <div class="centro">
+            <div class="pote-centro" id="pote-centro">Pote 0</div>
+            <div class="board" id="board" role="group" aria-label="Cartas da mesa"></div>
+          </div>
+          <div id="assentos"></div>
+        </div>
+        <div id="mesa-fis" hidden>
+          <div class="fis-topo">
+            <b id="fis-pote">Pote 0</b>
+            <span id="fis-rua">Pré-flop</span>
+          </div>
+          <ul class="fis-lista" id="fis-lista" aria-label="Jogadores da mesa"></ul>
+        </div>
+        <div id="tela" hidden>
+          <div class="tela-card" role="dialog" aria-live="polite">
+            <h2 id="tela-titulo"></h2>
+            <div id="tela-corpo"></div>
+            <button id="tela-btn" class="btn btn-primary" type="button">Continuar</button>
+            <button id="tela-btn2" class="btn btn-secondary" type="button" hidden>Ver a mesa</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="entrada">
+        <p id="dica"></p>
+        <div class="minhas" id="minhas" hidden>
+          <div class="pares" id="minhas-cartas"></div>
+          <div class="minhas-txt"><span class="nivel-rotulo" id="minhas-rot">Suas cartas</span><b id="minhas-mao"></b></div>
+        </div>
+        <div id="painel-acao"></div>
+        <div class="ferramentas" id="ferramentas">
+          <button id="tabela-btn" class="tool-btn" type="button" aria-haspopup="dialog" data-abrir="tabela-modal">Tabela de mãos</button>
+          <button id="undo-btn" class="tool-btn" type="button" hidden>Retroceder ação</button>
+          <button id="jog-btn" class="tool-btn" type="button" aria-haspopup="dialog" hidden>Jogadores e fichas</button>
+          <button id="blinds-btn" class="tool-btn" type="button" aria-haspopup="dialog" hidden>Blinds</button>
+        </div>
+      </div>
+
+      <div id="message-container"><div id="message-area" role="status" aria-live="polite"></div></div>
+
+      <div id="placar">
+        <div class="grupo-frota"><span class="grupo-tit" id="gp-jog">Jogadores</span><div class="chips" id="chips-jog" role="list" aria-labelledby="gp-jog"></div></div>
+        <div class="grupo-frota"><span class="grupo-tit" id="gp-diario">Últimas jogadas</span><ul id="diario" aria-labelledby="gp-diario"></ul></div>
+      </div>
+
+      <button id="restart-btn" class="btn btn-primary" type="button">Nova partida</button>
+
+      <div id="config" aria-label="Ajudas">
+        <div class="acc" id="acc-ajuda">
+          <button class="acc-btn" id="ajuda-btn" type="button" aria-expanded="false" aria-controls="ajuda-painel">
+            <span class="opc-txt"><span class="nivel-rotulo">Ajudas</span><b id="ajuda-atual">Robôs em velocidade normal</b></span>
+            <span class="ic" id="ajuda-chevron"></span>
+          </button>
+          <div class="acc-panel" id="ajuda-painel" role="region" aria-labelledby="ajuda-btn">
+            <div>
+              <div class="linha-cfg" id="lin-vel">
+                <span class="rotulo-cfg">Robôs</span>
+                <div id="op-vel" class="seg" role="group" aria-label="Velocidade dos robôs">
+                  <button class="seg-btn" type="button" data-v="rapido">Rápido</button>
+                  <button class="seg-btn" type="button" data-v="normal">Normal</button>
+                  <button class="seg-btn" type="button" data-v="lento">Lento</button>
+                </div>
+              </div>
+              <div class="linha-cfg" id="lin-mao">
+                <span class="rotulo-cfg">Nome da mão</span>
+                <div id="op-nomemao" class="seg" role="group" aria-label="Mostrar o nome da sua mão">
+                  <button class="seg-btn" type="button" data-v="sim">Mostrar</button>
+                  <button class="seg-btn" type="button" data-v="nao">Esconder</button>
+                </div>
+              </div>
+              <p id="ajuda-aviso">As ajudas valem na hora e ficam salvas neste aparelho.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p class="assinatura-final">© Christian, 2026</p>
+  </footer>
+</body>
+</html>
